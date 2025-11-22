@@ -137,10 +137,12 @@ class NotificationHelper {
                     e.email as employee_email,
                     e.department,
                     e.position,
-                    dept_head.name as dept_head_name
+                    dept_head.name as dept_head_name,
+                    hr_user.name as hr_name
                 FROM leave_requests lr 
                 JOIN employees e ON lr.employee_id = e.id 
                 LEFT JOIN employees dept_head ON lr.dept_head_approved_by = dept_head.id
+                LEFT JOIN employees hr_user ON lr.admin_approved_by = hr_user.id
                 WHERE lr.id = ?
             ");
             $stmt->execute([$leaveRequestId]);
@@ -154,6 +156,12 @@ class NotificationHelper {
             if ($action !== 'approved') {
                 return true; // No need to notify director for rejections
             }
+
+            // Enforce sequential gating: require HR/Admin approval before notifying Director
+            if (!isset($leaveRequest['admin_approval']) || $leaveRequest['admin_approval'] !== 'approved') {
+                // Do not notify Director until HR has approved
+                return true;
+            }
             
             // Get director info
             $director = $this->getDirectorEmail();
@@ -166,7 +174,7 @@ class NotificationHelper {
             require_once __DIR__ . '/EmailService.php';
             $emailService = new EmailService();
             
-            $subject = "Leave Request Approved by Department Head - Action Required - ELMS";
+            $subject = "Leave Request Approved by HR - Action Required - ELMS";
             $startDate = date('M d, Y', strtotime($leaveRequest['start_date']));
             $endDate = date('M d, Y', strtotime($leaveRequest['end_date']));
             
@@ -343,21 +351,22 @@ Please do not reply to this email.
         <body>
             <div class='container'>
                 <div class='header'>
-                    <h1>Leave Request Approved by Department Head</h1>
+                    <h1>Leave Request Approved by HR</h1>
                     <p>ELMS - Employee Leave Management System</p>
                 </div>
                 
                 <div class='content'>
                     <p>Dear {$director['name']},</p>
                     
-                    <p>A leave request has been <span class='approved'>approved by the Department Head</span> and now requires your final approval:</p>
+                    <p>A leave request has been <span class='approved'>approved by HR</span> and now requires your final approval:</p>
                     
                     <div class='details'>
                         <h3>Leave Request Details:</h3>
                         <p><strong>Employee:</strong> {$leaveRequest['employee_name']}</p>
                         <p><strong>Position:</strong> {$leaveRequest['position']}</p>
-                        <p><strong>Department:</strong> {$leaveRequest['department']}</p>
+                        <p><strong>HR Approved By:</strong> {$leaveRequest['hr_name']}</p>
                         <p><strong>Department Head:</strong> {$leaveRequest['dept_head_name']}</p>
+                        <p><strong>HR Reviewed By:</strong> {$leaveRequest['hr_name']}</p>
                         <p><strong>Leave Type:</strong> " . $this->getLeaveTypeDisplayName($leaveRequest['leave_type'], $leaveRequest['original_leave_type'] ?? null) . "</p>
                         <p><strong>Start Date:</strong> {$startDate}</p>
                         <p><strong>End Date:</strong> {$endDate}</p>
@@ -395,18 +404,19 @@ Please do not reply to this email.
         $days = $leaveRequest['approved_days'] ?? $leaveRequest['days_requested'] ?? 0;
         
         return "
-LEAVE REQUEST APPROVED BY DEPARTMENT HEAD - ACTION REQUIRED
+LEAVE REQUEST APPROVED BY HR - ACTION REQUIRED
 ELMS - Employee Leave Management System
 
 Dear {$director['name']},
 
-A leave request has been APPROVED by the Department Head and now requires your final approval:
+A leave request has been APPROVED by HR and now requires your final approval:
 
 LEAVE REQUEST DETAILS:
 Employee: {$leaveRequest['employee_name']}
 Position: {$leaveRequest['position']}
 Department: {$leaveRequest['department']}
 Department Head: {$leaveRequest['dept_head_name']}
+HR Reviewed By: {$leaveRequest['hr_name']}
 Leave Type: " . $this->getLeaveTypeDisplayName($leaveRequest['leave_type'], $leaveRequest['original_leave_type'] ?? null) . "
 Start Date: {$startDate}
 End Date: {$endDate}

@@ -1,6 +1,23 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 // Admin Sidebar Component
 $current_page = basename($_SERVER['PHP_SELF']);
+
+// Compute HR pending count if HR/admin is logged in
+$hrPendingCount = 0;
+try {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        if (!isset($pdo)) {
+            require_once __DIR__ . '/../../config/database.php';
+        }
+        $stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM leave_requests WHERE dept_head_approval = 'approved' AND (admin_approval IS NULL OR admin_approval = 'pending') AND (director_approval IS NULL OR director_approval = 'pending') AND status != 'rejected'");
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $hrPendingCount = (int)($row['cnt'] ?? 0);
+    }
+} catch (Exception $e) {
+    $hrPendingCount = 0;
+}
 ?>
 
 <!-- Active Navigation Item (Dashboard) -->
@@ -22,7 +39,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="leave_management.php" class="flex items-center space-x-3 px-4 py-3 <?php echo $current_page === 'leave_management.php' ? 'text-white bg-blue-500/20 rounded-lg border border-blue-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors'; ?>">
         <i class="fas fa-calendar-check w-5"></i>
         <span>Leave Management</span>
-        <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full" id="pendingLeaveBadge" style="display: none;">0</span>
+        <?php if (($hrPendingCount ?? 0) > 0): ?>
+            <span class="ml-2 inline-flex items-center justify-center bg-red-600 text-white text-[11px] leading-none px-2 py-1 rounded-full min-w-[1.25rem]" id="pendingLeaveBadge"><?php echo $hrPendingCount; ?></span>
+        <?php endif; ?>
     </a>
     
     <a href="leave_management.php?status=pending" class="flex items-center space-x-3 px-4 py-3 <?php echo (isset($_GET['status']) && $_GET['status'] === 'pending') ? 'text-white bg-blue-500/20 rounded-lg border border-blue-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors'; ?>">

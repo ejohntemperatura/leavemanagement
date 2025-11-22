@@ -41,6 +41,11 @@ try {
     if (($request['dept_head_approval'] ?? 'pending') !== 'approved') {
         throw new Exception('Department Head must approve first before Director can approve.');
     }
+
+    // Require HR/Admin approval after Department Head approval
+    if (($request['admin_approval'] ?? 'pending') !== 'approved') {
+        throw new Exception('HR must review and approve before Director can approve.');
+    }
     
     // Update director approval status and final status with pay status
     // Set approved_days and specific pay status fields

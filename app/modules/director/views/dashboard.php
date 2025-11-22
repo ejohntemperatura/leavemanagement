@@ -32,6 +32,7 @@ $stmt = $pdo->prepare("
     FROM leave_requests lr 
     JOIN employees e ON lr.employee_id = e.id 
     WHERE lr.dept_head_approval = 'approved'
+    AND lr.admin_approval = 'approved'
     AND (lr.director_approval IS NULL OR lr.director_approval = 'pending')
     AND lr.status != 'rejected'
 ");
@@ -44,6 +45,7 @@ $stmt = $pdo->prepare("
     FROM leave_requests lr 
     JOIN employees e ON lr.employee_id = e.id 
     WHERE lr.dept_head_approval = 'approved'
+    AND lr.admin_approval = 'approved'
     AND (lr.director_approval IS NULL OR lr.director_approval = 'pending')
     AND lr.status != 'rejected'
     ORDER BY lr.is_late DESC, lr.created_at DESC 
@@ -290,12 +292,21 @@ $leaveTypes = getLeaveTypes();
 								<h4 class="text-lg font-semibold text-white mb-2 flex items-center">
 									<i class="fas fa-clock text-blue-400 mr-2"></i>Current Status
 								</h4>
-								<p class="text-slate-300">This leave request has been <strong class="text-white">approved by the department head</strong> and is now awaiting your final decision as Director.</p>
+								<p class="text-slate-300">This leave request has been <strong class="text-white">approved by the Department Head and Admin</strong> and is now awaiting your final decision as Director.</p>
 							</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 								<div class="bg-slate-700/50 rounded-xl p-4">
 									<h4 class="text-green-400 font-semibold mb-3 flex items-center">
 										<i class="fas fa-user-tie mr-2"></i>Department Head
+									</h4>
+									<p class="text-slate-300 mb-2"><strong class="text-white">Status:</strong> 
+										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 ml-2">Approved</span>
+									</p>
+									<p class="text-slate-400 text-sm">Already reviewed and approved</p>
+								</div>
+								<div class="bg-slate-700/50 rounded-xl p-4">
+									<h4 class="text-emerald-400 font-semibold mb-3 flex items-center">
+										<i class="fas fa-user-shield mr-2"></i>Admin
 									</h4>
 									<p class="text-slate-300 mb-2"><strong class="text-white">Status:</strong> 
 										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 ml-2">Approved</span>

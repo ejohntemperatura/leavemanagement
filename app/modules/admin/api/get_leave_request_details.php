@@ -181,7 +181,8 @@ try {
     
     echo json_encode([
         'success' => true,
-        'leave_request' => $leave_request
+        'leave_request' => $leave_request,
+        'leave' => $leave_request
     ]);
     
 } catch (Exception $e) {

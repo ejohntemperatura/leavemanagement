@@ -26,6 +26,7 @@ try {
         FROM leave_requests lr 
         JOIN employees e ON lr.employee_id = e.id 
         WHERE lr.dept_head_approval = 'approved'
+        AND lr.admin_approval = 'approved'
         AND (lr.director_approval IS NULL OR lr.director_approval = 'pending')
         AND lr.status != 'rejected'
         ORDER BY lr.is_late DESC, lr.created_at DESC 

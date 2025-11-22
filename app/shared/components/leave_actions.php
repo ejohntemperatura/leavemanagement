@@ -36,9 +36,36 @@ if (!$leave_request) {
 }
 
 // Handle actions
+$role = $_SESSION['role'];
+$message = '';
+
 if ($action === 'approve') {
-    $stmt = $pdo->prepare("UPDATE leave_requests SET status = 'approved' WHERE id = ?");
-    $stmt->execute([$request_id]);
+    if ($role === 'manager') {
+        // Department Head approval
+        $stmt = $pdo->prepare("UPDATE leave_requests SET dept_head_approval = 'approved', dept_head_approved_by = ?, dept_head_approved_at = NOW() WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id'], $request_id]);
+        $message = 'Department Head approval recorded.';
+    } elseif ($role === 'admin') {
+        // HR/Admin approval requires Dept Head approval first
+        if (($leave_request['dept_head_approval'] ?? 'pending') !== 'approved') {
+            $message = 'Department Head must approve first before HR.';
+        } else {
+            $stmt = $pdo->prepare("UPDATE leave_requests SET admin_approval = 'approved', admin_approved_by = ?, admin_approved_at = NOW() WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id'], $request_id]);
+            $message = 'HR approval recorded.';
+        }
+    } elseif ($role === 'director') {
+        // Director approval requires Dept Head and HR approvals
+        if (($leave_request['dept_head_approval'] ?? 'pending') !== 'approved') {
+            $message = 'Department Head must approve first before Director.';
+        } elseif (($leave_request['admin_approval'] ?? 'pending') !== 'approved') {
+            $message = 'HR must approve before Director.';
+        } else {
+            $stmt = $pdo->prepare("UPDATE leave_requests SET director_approval = 'approved', director_approved_by = ?, director_approved_at = NOW(), status = 'approved' WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id'], $request_id]);
+            $message = 'Leave request approved by Director.';
+        }
+    }
     
     // Send notification email
     require_once '../../../includes/EmailService.php';
@@ -46,17 +73,38 @@ if ($action === 'approve') {
     $emailService->sendLeaveStatusNotification(
         $leave_request['employee_email'],
         $leave_request['employee_name'],
-        'approved',
+        ($role === 'director' ? 'approved' : 'pending'),
         $leave_request['start_date'],
         $leave_request['end_date'],
         $leave_request['leave_type']
     );
     
-    $message = 'Leave request approved successfully';
-    
 } elseif ($action === 'reject') {
-    $stmt = $pdo->prepare("UPDATE leave_requests SET status = 'rejected' WHERE id = ?");
-    $stmt->execute([$request_id]);
+    if ($role === 'manager') {
+        $stmt = $pdo->prepare("UPDATE leave_requests SET dept_head_approval = 'rejected', dept_head_approved_by = ?, dept_head_approved_at = NOW(), status = 'rejected' WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id'], $request_id]);
+        $message = 'Leave request rejected by Department Head.';
+    } elseif ($role === 'admin') {
+        // HR can reject after Dept Head approval
+        if (($leave_request['dept_head_approval'] ?? 'pending') !== 'approved') {
+            $message = 'Department Head must approve first before HR can reject.';
+        } else {
+            $stmt = $pdo->prepare("UPDATE leave_requests SET admin_approval = 'rejected', admin_approved_by = ?, admin_approved_at = NOW(), status = 'rejected' WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id'], $request_id]);
+            $message = 'Leave request rejected by HR.';
+        }
+    } elseif ($role === 'director') {
+        // Director can reject only after Dept Head and HR approvals
+        if (($leave_request['dept_head_approval'] ?? 'pending') !== 'approved') {
+            $message = 'Department Head must act first before Director can reject.';
+        } elseif (($leave_request['admin_approval'] ?? 'pending') !== 'approved') {
+            $message = 'HR must approve before Director can reject.';
+        } else {
+            $stmt = $pdo->prepare("UPDATE leave_requests SET director_approval = 'rejected', director_approved_by = ?, director_approved_at = NOW(), status = 'rejected' WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id'], $request_id]);
+            $message = 'Leave request rejected by Director.';
+        }
+    }
     
     // Send notification email
     require_once '../../../includes/EmailService.php';
@@ -69,8 +117,6 @@ if ($action === 'approve') {
         $leave_request['end_date'],
         $leave_request['leave_type']
     );
-    
-    $message = 'Leave request rejected';
 }
 
 // Redirect back with message

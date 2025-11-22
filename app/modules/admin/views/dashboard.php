@@ -862,7 +862,8 @@ $leave_requests = $stmt->fetchAll();
                                     <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
                                         <i class="fas fa-clipboard-check text-primary mr-3"></i>Approval Status
                                     </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <!-- Dept. Head -->
                                         <div class="text-center">
                                             <label class="text-sm font-medium text-slate-400 mb-2 block">Department Head</label>
                                             <div class="mb-2">
@@ -874,12 +875,33 @@ $leave_requests = $stmt->fetchAll();
                                             ${leave.dept_head_approved_at ? `<p class="text-xs text-slate-400">${new Date(leave.dept_head_approved_at).toLocaleDateString()}</p>` : ''}
                                             ${leave.dept_head_rejection_reason ? `<p class="text-xs text-red-400 mt-1">${leave.dept_head_rejection_reason}</p>` : ''}
                                         </div>
+                                        <!-- HR -->
                                         <div class="text-center">
-                                            <label class="text-sm font-medium text-slate-400 mb-2 block">Director</label>
+                                            <label class="text-sm font-medium text-slate-400 mb-2 block">HR</label>
                                             <div class="mb-2">
-                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass((leave.dept_head_approval === 'rejected') ? 'rejected' : (leave.director_approval || 'pending'))} border">
-                                                    ${((leave.dept_head_approval === 'rejected') ? 'rejected' : (leave.director_approval || 'pending')).charAt(0).toUpperCase() + ((leave.dept_head_approval === 'rejected') ? 'rejected' : (leave.director_approval || 'pending')).slice(1)}
-                                                </span>
+                                                ${(() => {
+                                                    const hrStatus = (leave.dept_head_approval === 'rejected') ? 'rejected' : (leave.admin_approval || 'pending');
+                                                    const cls = getStatusBadgeClass(hrStatus);
+                                                    const txt = hrStatus.charAt(0).toUpperCase() + hrStatus.slice(1);
+                                                    return `<span class=\"inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls} border\">${txt}</span>`;
+                                                })()}
+                                            </div>
+                                            ${leave.admin_name ? `<p class="text-xs text-slate-400">by ${leave.admin_name}</p>` : ''}
+                                            ${leave.admin_approved_at ? `<p class="text-xs text-slate-400">${new Date(leave.admin_approved_at).toLocaleDateString()}</p>` : ''}
+                                            ${leave.admin_rejection_reason ? `<p class="text-xs text-red-400 mt-1">${leave.admin_rejection_reason}</p>` : ''}
+                                        </div>
+                                        <!-- Director Head -->
+                                        <div class="text-center">
+                                            <label class="text-sm font-medium text-slate-400 mb-2 block">Director Head</label>
+                                            <div class="mb-2">
+                                                ${(() => {
+                                                    let dirStatus = leave.director_approval || 'pending';
+                                                    if (leave.dept_head_approval === 'rejected') dirStatus = 'rejected';
+                                                    else if (leave.admin_approval !== 'approved') dirStatus = 'pending';
+                                                    const cls = getStatusBadgeClass(dirStatus);
+                                                    const txt = dirStatus.charAt(0).toUpperCase() + dirStatus.slice(1);
+                                                    return `<span class=\"inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls} border\">${txt}</span>`;
+                                                })()}
                                             </div>
                                             ${leave.director_name ? `<p class="text-xs text-slate-400">by ${leave.director_name}</p>` : ''}
                                             ${leave.director_approved_at ? `<p class="text-xs text-slate-400">${new Date(leave.director_approved_at).toLocaleDateString()}</p>` : ''}
@@ -894,7 +916,7 @@ $leave_requests = $stmt->fetchAll();
                                                     ${(leave.status || 'pending').charAt(0).toUpperCase() + (leave.status || 'pending').slice(1)}
                                                 </span>
                                             </div>
-                                            <p class="text-xs text-slate-400">Based on Department Head and Director approvals</p>
+                                            <p class="text-xs text-slate-400">Based on Department Head, HR, and Director approvals</p>
                                         </div>
                                     </div>
                                 </div>
@@ -984,87 +1006,48 @@ $leave_requests = $stmt->fetchAll();
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.id = 'statusInfoHelpModal';
             modal.innerHTML = `
-                <div class="bg-slate-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
-                    <div class="flex items-center justify-between mb-6">
-                        <h5 class="text-2xl font-semibold text-white flex items-center">
-                            <i class="fas fa-info-circle text-primary mr-3"></i>Status Information Guide
+                <div class=\"bg-slate-800 rounded-xl w-full max-w-xl mx-4 max-h-[80vh] overflow-y-auto border border-slate-700/60 shadow-xl\">
+                    <div class=\"px-5 py-4 border-b border-slate-700/60 flex items-center justify-between\">
+                        <h5 class=\"text-base md:text-lg font-semibold text-white flex items-center\">
+                            <i class=\"fas fa-info-circle text-primary mr-2\"></i>Status Information Guide
                         </h5>
-                        <button type="button" class="text-slate-400 hover:text-white" onclick="closeStatusModal()">
-                            <i class="fas fa-times text-xl"></i>
+                        <button type=\"button\" class=\"text-slate-400 hover:text-white\" onclick=\"closeStatusModal()\">
+                            <i class=\"fas fa-times text-sm\"></i>
                         </button>
                     </div>
-                    
-                    <div class="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
-                        <h6 class="text-lg font-semibold text-blue-400 flex items-center mb-2">
-                            <i class="fas fa-lightbulb mr-2"></i>Understanding Leave Request Status
-                        </h6>
-                        <p class="text-slate-300">This table shows the current status of leave requests in the system. Here's what each status means:</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <h6 class="text-yellow-400 text-lg font-semibold mb-3 flex items-center">
-                                <i class="fas fa-clock mr-2"></i>Pending Status
-                            </h6>
-                            <div class="space-y-2 text-slate-300">
-                                <p><strong class="text-white">Meaning:</strong> Leave request is waiting for approval</p>
-                                <p><strong class="text-white">What you can do:</strong> Monitor and track request progress</p>
-                                <p><strong class="text-white">Next step:</strong> Department Head and Director will review</p>
+                    <div class=\"px-5 py-4\">
+                        <p class=\"text-slate-300 text-sm mb-4\">Workflow: <span class=\"text-white font-medium\">Department Head → HR → Director Head</span>. Director remains Pending until HR approves.</p>
+
+                        <div class=\"divide-y divide-slate-700/60 rounded-lg border border-slate-700/60 overflow-hidden\">
+                            <div class=\"p-4 bg-slate-800/60\">
+                                <div class=\"flex items-center mb-1\">
+                                    <i class=\"fas fa-clock text-yellow-400 mr-2\"></i>
+                                    <h6 class=\"text-slate-200 font-semibold\">Pending</h6>
+                                </div>
+                                <p class=\"text-slate-400 text-sm\">Awaiting action from the next approver in the sequence.</p>
+                            </div>
+                            <div class=\"p-4 bg-slate-800/60\">
+                                <div class=\"flex items-center mb-1\">
+                                    <i class=\"fas fa-check-circle text-green-400 mr-2\"></i>
+                                    <h6 class=\"text-slate-200 font-semibold\">Approved</h6>
+                                </div>
+                                <p class=\"text-slate-400 text-sm\">Step approved. Final approval is achieved when the Director approves.</p>
+                            </div>
+                            <div class=\"p-4 bg-slate-800/60\">
+                                <div class=\"flex items-center mb-1\">
+                                    <i class=\"fas fa-times-circle text-red-400 mr-2\"></i>
+                                    <h6 class=\"text-slate-200 font-semibold\">Rejected</h6>
+                                </div>
+                                <p class=\"text-slate-400 text-sm\">If the Department Head rejects, downstream statuses reflect Rejected.</p>
                             </div>
                         </div>
-                        <div>
-                            <h6 class="text-green-400 text-lg font-semibold mb-3 flex items-center">
-                                <i class="fas fa-check-circle mr-2"></i>Approved Status
-                            </h6>
-                            <div class="space-y-2 text-slate-300">
-                                <p><strong class="text-white">Meaning:</strong> Leave request has been approved</p>
-                                <p><strong class="text-white">What this means:</strong> Employee can take the leave</p>
-                                <p><strong class="text-white">Note:</strong> Leave balance will be deducted</p>
-                            </div>
+
+                        <div class=\"mt-4 text-slate-400 text-xs\">
+                            <p>Use <span class=\"text-white\">Leave Management</span> to view and act on requests.</p>
                         </div>
                     </div>
-                    
-                    <div class="border-t border-slate-700 pt-6 mb-6"></div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <h6 class="text-red-400 text-lg font-semibold mb-3 flex items-center">
-                                <i class="fas fa-times-circle mr-2"></i>Rejected Status
-                            </h6>
-                            <div class="space-y-2 text-slate-300">
-                                <p><strong class="text-white">Meaning:</strong> Leave request has been rejected</p>
-                                <p><strong class="text-white">What this means:</strong> Employee cannot take the leave</p>
-                                <p><strong class="text-white">Note:</strong> Employee will be notified</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h6 class="text-primary text-lg font-semibold mb-3 flex items-center">
-                                <i class="fas fa-cog mr-2"></i>Leave Management
-                            </h6>
-                            <div class="space-y-2 text-slate-300">
-                                <p><strong class="text-white">Purpose:</strong> Access full leave management system</p>
-                                <p><strong class="text-white">Includes:</strong> View, monitor, and track all requests</p>
-                                <p><strong class="text-white">Action:</strong> Click the settings button</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
-                        <h6 class="text-lg font-semibold text-yellow-400 flex items-center mb-3">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>Important Notes
-                        </h6>
-                        <ul class="text-slate-300 space-y-1">
-                            <li>• Use the <strong class="text-white">Leave Management</strong> page to view and monitor requests</li>
-                            <li>• This dashboard shows a summary view only</li>
-                            <li>• Approval actions are handled by Department Heads and Directors</li>
-                            <li>• All actions are logged for audit purposes</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="flex justify-end">
-                        <button onclick="closeStatusModal()" class="bg-slate-600 hover:bg-slate-500 text-white px-6 py-2 rounded-lg transition-colors">
-                            Close
-                        </button>
+                    <div class=\"px-5 py-3 border-t border-slate-700/60 flex justify-end\">
+                        <button onclick=\"closeStatusModal()\" class=\"bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg transition-colors text-sm\">Close</button>
                     </div>
                 </div>
             `;

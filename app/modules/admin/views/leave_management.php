@@ -353,7 +353,7 @@ include '../../../../includes/admin_header.php';
                             </h3>
                             <div class="text-slate-400 text-sm">
                                 <i class="fas fa-info-circle mr-2"></i>
-                                Admin View - Read Only Access. You can view all leave request details and print approved leave forms. Approval/rejection is handled by Department Heads and Directors.
+                                HR View: You can approve or reject requests after the Department Head has approved. Director provides the final decision.
                             </div>
                             </div>
                         <div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4">
@@ -361,9 +361,9 @@ include '../../../../includes/admin_header.php';
                                 <i class="fas fa-info-circle text-blue-400 mr-3"></i>
                                 <div>
                                     <p class="text-white font-semibold">All leave requests are visible here.</p>
-                                    <p class="text-slate-300 text-sm">You can only take action (approve/reject) on requests where both the Department Head and Director have already made their decisions.</p>
+                                    <p class="text-slate-300 text-sm">Workflow: Department Head approves first → HR reviews and approves/rejects → Director gives final decision. As HR, you can approve/reject after the Department Head approval.</p>
+                                </div>
                             </div>
-                        </div>
                         </div>
                     </div>
                     <div class="p-6">
@@ -380,9 +380,9 @@ include '../../../../includes/admin_header.php';
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">End Date</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Days</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Reason</th>
-                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Dept Head</th>
-                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Director</th>
-                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Final Status</th>
+                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Dept. Head</th>
+                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">HR</th>
+                                            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Director Head</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-slate-300">Actions</th>
                                             </tr>
                                         </thead>
@@ -470,40 +470,38 @@ include '../../../../includes/admin_header.php';
                                                     </span>
                                                     </div>
                                                 </td>
+                                                <!-- HR Approval -->
+                                                <td class="py-4 px-4">
+                                                    <?php 
+                                                    $dept_status = $request['dept_head_approval'] ?? 'pending';
+                                                    $admin_status = $request['admin_approval'] ?? 'pending';
+                                                    // If department head rejected, HR should reflect blocked/rejected state
+                                                    if ($dept_status == 'rejected') {
+                                                        $admin_status = 'rejected';
+                                                    }
+                                                    $admin_color = $admin_status == 'approved' ? 'green' : ($admin_status == 'rejected' ? 'red' : 'yellow');
+                                                    ?>
+                                                    <div class="flex flex-col gap-1">
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-<?php echo $admin_color; ?>-500/20 text-<?php echo $admin_color; ?>-400 border border-<?php echo $admin_color; ?>-500/30" data-hr-status="<?php echo ucfirst($admin_status); ?>">
+                                                        <?php echo ucfirst($admin_status); ?>
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <!-- Director Approval -->
                                                 <td class="py-4 px-4">
                                                     <?php 
                                                     $dept_status = $request['dept_head_approval'] ?? 'pending';
                                                     $director_status = $request['director_approval'] ?? 'pending';
-                                                    
-                                                    // If department head rejected, director status should show as rejected
+                                                    // Block director with rejected if dept head rejected
                                                     if ($dept_status == 'rejected') {
                                                         $director_status = 'rejected';
                                                     }
-                                                    
                                                     $director_color = $director_status == 'approved' ? 'green' : ($director_status == 'rejected' ? 'red' : 'yellow');
                                                     ?>
                                                     <div class="flex flex-col gap-1">
                                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-<?php echo $director_color; ?>-500/20 text-<?php echo $director_color; ?>-400 border border-<?php echo $director_color; ?>-500/30" data-director-status="<?php echo ucfirst($director_status); ?>">
-                                                        <?php echo ucfirst($director_status); ?>
+                                                            <?php echo ucfirst($director_status); ?>
                                                         </span>
-                                                    </div>
-                                                </td>
-                                                <!-- Final Status -->
-                                                <td class="py-4 px-4">
-                                                    <div class="flex items-center gap-2">
-                                                        <?php 
-                                                        $status_color = $request['status'] == 'approved' ? 'green' : 
-                                                                        ($request['status'] == 'pending' ? 'yellow' : 'red'); 
-                                                        ?>
-                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-<?php echo $status_color; ?>-500/20 text-<?php echo $status_color; ?>-400 border border-<?php echo $status_color; ?>-500/30" data-final-status="<?php echo ucfirst($request['status']); ?>">
-                                                            <?php echo ucfirst($request['status']); ?>
-                                                        </span>
-                                                        <button type="button" class="p-1 text-slate-400 hover:text-white transition-colors" 
-                                                                onclick="showStatusInfo(<?php echo $request['id']; ?>)"
-                                                                title="View Status Details">
-                                                            <i class="fas fa-info-circle text-sm"></i>
-                                                        </button>
                                                     </div>
                                                 </td>
                                                 <!-- Actions -->
@@ -512,36 +510,52 @@ include '../../../../includes/admin_header.php';
                                                     // Check approval status at each level
                                                     $dept_status = $request['dept_head_approval'] ?? 'pending';
                                                     $director_status = $request['director_approval'] ?? 'pending';
+                                                    $admin_status = $request['admin_approval'] ?? 'pending';
                                                     
                                                     $dept_approved = $dept_status == 'approved';
                                                     $director_approved = $director_status == 'approved';
                                                     $both_approved = $dept_approved && $director_approved;
-                                                    $any_rejected = $dept_status == 'rejected' || $director_status == 'rejected';
+                                                    $any_rejected = $dept_status == 'rejected' || $director_status == 'rejected' || $admin_status == 'rejected';
+                                                    $hr_can_act = ($__SESSION_ROLE = ($_SESSION['role'] ?? '')) === 'admin' && $dept_approved && ($director_status == 'pending' || $director_status == null) && $admin_status != 'approved';
                                                     ?>
                                                     
                                                     <div class="flex flex-col gap-2">
                                                     <?php if ($both_approved): ?>
-                                                        <!-- Print functionality for approved requests -->
-                                                        <a href="print_leave_request.php?id=<?php echo $request['id']; ?>" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-                                                            <i class="fas fa-print mr-1"></i> Print
-                                                        </a>
+                                                        <!-- View + Print pills for approved requests -->
+                                                        <div class="flex items-center gap-2">
+                                                            <button type="button" class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium transition-colors" 
+                                                                    onclick="viewRequestDetails(<?php echo $request['id']; ?>)" title="View details">
+                                                                <i class="fas fa-eye"></i><span>View</span>
+                                                            </button>
+                                                            <a href="print_leave_request.php?id=<?php echo $request['id']; ?>" target="_blank" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">
+                                                                <i class="fas fa-print"></i><span>Print</span>
+                                                            </a>
+                                                        </div>
                                                     <?php elseif ($any_rejected): ?>
                                                         <div class="text-center">
                                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">Rejected</span>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="text-center">
-                                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Waiting</span>
-                                                        </div>
+                                                        <?php if ($hr_can_act): ?>
+                                                            <div class="flex items-center gap-2">
+                                                                <button type="button" onclick="openHRApprovalModal(<?php echo $request['id']; ?>)" class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-colors">
+                                                                    <i class="fas fa-gavel"></i><span>Process Request</span>
+                                                                </button>
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                                                    <i class="fas fa-clock"></i><span>Waiting</span>
+                                                                </span>
+                                                                <button type="button" class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium transition-colors" 
+                                                                        onclick="viewRequestDetails(<?php echo $request['id']; ?>)" title="View details">
+                                                                    <i class="fas fa-eye"></i><span>View</span>
+                                                                </button>
+                                                            </div>
+                                                        <?php endif; ?>
                                                     <?php endif; ?>
-                                                    
-                                                        <button type="button" class="inline-flex items-center px-3 py-1 bg-primary hover:bg-primary/80 text-white text-xs font-medium rounded-lg transition-colors" 
-                                                            onclick="viewRequestDetails(<?php echo $request['id']; ?>)"
-                                                            title="View Details">
-                                                            <i class="fas fa-eye mr-1"></i>View
-                                                    </button>
-                                                    </div>
-                                                </td>
+                </div>
+            </td>
                                             </tr>
                                             <?php endforeach; ?>
                                             <?php endif; ?>
@@ -1007,27 +1021,43 @@ include '../../../../includes/admin_header.php';
                         <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
                             <i class="fas fa-clipboard-check text-primary mr-3"></i>Approval Status
                         </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Dept. Head -->
                             <div class="text-center">
                                 <label class="text-sm font-medium text-slate-400 mb-2 block">Department Head</label>
                                 <div class="mb-2">${getStatusBadge(leaveRequest.dept_head_approval || 'pending')}</div>
-                                ${leaveRequest.dept_head_name ? `<p class="text-xs text-slate-400">by ${leaveRequest.dept_head_name}</p>` : ''}
-                                ${leaveRequest.dept_head_approved_at ? `<p class="text-xs text-slate-400">${new Date(leaveRequest.dept_head_approved_at).toLocaleDateString()}</p>` : ''}
-                                ${leaveRequest.dept_head_rejection_reason ? `<p class="text-xs text-red-400 mt-1">${leaveRequest.dept_head_rejection_reason}</p>` : ''}
+                                ${leaveRequest.dept_head_name ? `<p class=\"text-xs text-slate-400\">by ${leaveRequest.dept_head_name}</p>` : ''}
+                                ${leaveRequest.dept_head_approved_at ? `<p class=\"text-xs text-slate-400\">${new Date(leaveRequest.dept_head_approved_at).toLocaleDateString()}</p>` : ''}
+                                ${leaveRequest.dept_head_rejection_reason ? `<p class=\"text-xs text-red-400 mt-1\">${leaveRequest.dept_head_rejection_reason}</p>` : ''}
                             </div>
+                            <!-- HR -->
                             <div class="text-center">
-                                <label class="text-sm font-medium text-slate-400 mb-2 block">Director</label>
-                                <div class="mb-2">${getStatusBadge((leaveRequest.dept_head_approval === 'rejected') ? 'rejected' : (leaveRequest.director_approval || 'pending'))}</div>
-                                ${leaveRequest.director_name ? `<p class="text-xs text-slate-400">by ${leaveRequest.director_name}</p>` : ''}
-                                ${leaveRequest.director_approved_at ? `<p class="text-xs text-slate-400">${new Date(leaveRequest.director_approved_at).toLocaleDateString()}</p>` : ''}
-                                ${leaveRequest.director_rejection_reason ? `<p class="text-xs text-red-400 mt-1">${leaveRequest.director_rejection_reason}</p>` : ''}
+                                <label class="text-sm font-medium text-slate-400 mb-2 block">HR</label>
+                                <div class="mb-2">${getStatusBadge((leaveRequest.dept_head_approval === 'rejected') ? 'rejected' : (leaveRequest.admin_approval || 'pending'))}</div>
+                                ${leaveRequest.admin_name ? `<p class=\"text-xs text-slate-400\">by ${leaveRequest.admin_name}</p>` : ''}
+                                ${leaveRequest.admin_approved_at ? `<p class=\"text-xs text-slate-400\">${new Date(leaveRequest.admin_approved_at).toLocaleDateString()}</p>` : ''}
+                                ${leaveRequest.admin_rejection_reason ? `<p class=\"text-xs text-red-400 mt-1\">${leaveRequest.admin_rejection_reason}</p>` : ''}
+                            </div>
+                            <!-- Director Head -->
+                            <div class="text-center">
+                                <label class="text-sm font-medium text-slate-400 mb-2 block">Director Head</label>
+                                <div class="mb-2">${getStatusBadge(
+                                    (leaveRequest.dept_head_approval === 'rejected')
+                                        ? 'rejected'
+                                        : ((leaveRequest.admin_approval !== 'approved')
+                                            ? 'pending'
+                                            : (leaveRequest.director_approval || 'pending'))
+                                )}</div>
+                                ${leaveRequest.director_name ? `<p class=\"text-xs text-slate-400\">by ${leaveRequest.director_name}</p>` : ''}
+                                ${leaveRequest.director_approved_at ? `<p class=\"text-xs text-slate-400\">${new Date(leaveRequest.director_approved_at).toLocaleDateString()}</p>` : ''}
+                                ${leaveRequest.director_rejection_reason ? `<p class=\"text-xs text-red-400 mt-1\">${leaveRequest.director_rejection_reason}</p>` : ''}
                             </div>
                         </div>
                         <div class="mt-6 pt-4 border-t border-slate-600/30">
                             <div class="text-center">
                                 <label class="text-sm font-medium text-slate-400 mb-2 block">Final Status</label>
                                 <div class="mb-2">${getStatusBadge(leaveRequest.status || 'pending')}</div>
-                                <p class="text-xs text-slate-400">Based on Department Head and Director approvals</p>
+                                <p class="text-xs text-slate-400">Based on Department Head, HR, and Director approvals</p>
                             </div>
                         </div>
                     </div>
@@ -1055,8 +1085,8 @@ include '../../../../includes/admin_header.php';
                             Close
                         </button>
                         ${(leaveRequest.dept_head_approval === 'approved' && leaveRequest.director_approval === 'approved') ? 
-                            `<a href="print_leave_request.php?id=${leaveRequest.id}" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                                <i class="fas fa-print mr-2"></i>Print
+                            `<a href="print_leave_request.php?id=${leaveRequest.id}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">
+                                <i class="fas fa-print"></i><span>Print</span>
                             </a>` : ''
                         }
                     </div>
@@ -1385,6 +1415,182 @@ include '../../../../includes/admin_header.php';
             }
         });
 
+        // HR Modal: reuse details modal UI and add action buttons
+        function openHRApprovalModal(requestId) {
+            const modal = document.getElementById('requestDetailsModal');
+            const content = document.getElementById('requestDetailsContent');
+            if (!modal || !content) { alert('Error: Modal elements not found.'); return; }
+            modal.classList.remove('hidden');
+            content.innerHTML = `<div class="flex items-center justify-center py-12"><div class="text-center"><div class="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-spinner fa-spin text-primary text-2xl"></i></div><h4 class="text-lg font-semibold text-white mb-2">Loading Details</h4><p class="text-slate-400">Please wait while we fetch the leave request details...</p></div></div>`;
+            fetch(`../api/get_leave_request_details.php?id=${requestId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) { content.innerHTML = `<div class='p-6 text-white'>Error loading details.</div>`; return; }
+                    showHRProcessModal(data.leave, requestId);
+                })
+                .catch(() => { content.innerHTML = `<div class='p-6 text-white'>Network error.</div>`; });
+        }
+
+        function showHRProcessModal(leaveRequest, requestId) {
+            const modal = document.getElementById('requestDetailsModal');
+            const content = document.getElementById('requestDetailsContent');
+            if (!modal || !content) return;
+            // Build the same sections as displayLeaveRequestDetails
+            const startDate = new Date(leaveRequest.start_date).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+            const endDate = new Date(leaveRequest.end_date).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+            const days = leaveRequest.days_requested || 0;
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-slate-700/30 rounded-xl p-6 border border-slate-600/30">
+                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center"><i class="fas fa-user text-primary mr-3"></i>Employee Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="text-sm font-medium text-slate-400">Name</label><p class="text-white font-semibold">${leaveRequest.employee_name}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Position</label><p class="text-white">${leaveRequest.position || 'N/A'}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Department</label><p class="text-white">${leaveRequest.department || 'N/A'}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Email</label><p class="text-white">${leaveRequest.employee_email || 'N/A'}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Request ID</label><p class="text-white font-mono">#${leaveRequest.id}</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-700/30 rounded-xl p-6 border border-slate-600/30">
+                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center"><i class="fas fa-calendar-alt text-primary mr-3"></i>Leave Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="text-sm font-medium text-slate-400">Leave Type</label><p class="text-white">${leaveRequest.leave_type}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Duration</label><p class="text-white">${days} day${days!==1?'s':''}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">Start Date</label><p class="text-white">${startDate}</p></div>
+                            <div><label class="text-sm font-medium text-slate-400">End Date</label><p class="text-white">${endDate}</p></div>
+                            <div class="md:col-span-2"><label class="text-sm font-medium text-slate-400">Reason</label><p class="text-white bg-slate-800/50 rounded-lg p-3 mt-1">${leaveRequest.reason || 'No reason provided'}</p></div>
+                        </div>
+                    </div>
+
+                    ${(leaveRequest.is_late == 1 || leaveRequest.is_late === '1' || leaveRequest.is_late === true) && leaveRequest.late_justification ? `
+                    <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-yellow-400 mb-4 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-3"></i>Late Application Details
+                        </h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-sm font-medium text-yellow-300">Late Justification</label>
+                                <p class="text-white bg-slate-800/50 rounded-lg p-3 mt-1">${leaveRequest.late_justification}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-yellow-300">Application Type</label>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                    Late Application
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${leaveRequest.location_type || leaveRequest.location_specify ? `
+                    <div class="bg-slate-700/30 rounded-xl p-6 border border-slate-600/30">
+                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-map-marker-alt text-primary mr-3"></i>Location Details
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${leaveRequest.location_type ? `<div><label class="text-sm font-medium text-slate-400">Location Type</label><p class="text-white">${leaveRequest.location_type}</p></div>` : ''}
+                            ${leaveRequest.location_specify ? `<div><label class="text-sm font-medium text-slate-400">Specific Location</label><p class="text-white">${leaveRequest.location_specify}</p></div>` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${leaveRequest.medical_condition || leaveRequest.illness_specify || leaveRequest.medical_certificate_path ? `
+                    <div class="bg-slate-700/30 rounded-xl p-6 border border-slate-600/30">
+                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-medkit text-primary mr-3"></i>Medical Details
+                        </h4>
+                        <div class="space-y-3">
+                            ${leaveRequest.medical_condition ? `<div><label class="text-sm font-medium text-slate-400">Medical Condition</label><p class="text-white">${leaveRequest.medical_condition}</p></div>` : ''}
+                            ${leaveRequest.illness_specify ? `<div><label class="text-sm font-medium text-slate-400">Illness Specification</label><p class="text-white">${leaveRequest.illness_specify}</p></div>` : ''}
+                            ${leaveRequest.medical_certificate_path ? `<div><label class="text-sm font-medium text-slate-400">Medical Certificate</label><div class="flex items-center space-x-3 mt-2"><i class="fas fa-file-medical text-green-400"></i><a href="../../api/view_medical_certificate.php?file=${encodeURIComponent(leaveRequest.medical_certificate_path)}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">View Medical Certificate</a></div></div>` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${leaveRequest.special_women_condition ? `
+                    <div class="bg-pink-500/20 border border-pink-500/30 rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-pink-400 mb-4 flex items-center">
+                            <i class="fas fa-female mr-3"></i>Special Women Condition
+                        </h4>
+                        <div>
+                            <label class="text-sm font-medium text-pink-300">Condition</label>
+                            <p class="text-white">${leaveRequest.special_women_condition}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${leaveRequest.study_type ? `
+                    <div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+                            <i class="fas fa-graduation-cap mr-3"></i>Study Details
+                        </h4>
+                        <div>
+                            <label class="text-sm font-medium text-blue-300">Study Type</label>
+                            <p class="text-white">${leaveRequest.study_type}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div class="flex justify-center gap-3 pt-2">
+                        <button type="button" onclick="confirmHRApproval(${requestId})" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"><i class="fas fa-check mr-2"></i>Approve as HR</button>
+                        <button type="button" onclick="promptHRRejection(${requestId})" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"><i class="fas fa-times mr-2"></i>Reject as HR</button>
+                        <button type="button" onclick="closeRequestModal()" class="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors">Close</button>
+                    </div>
+                </div>`;
+        }
+
+        // Simple processing overlay
+        function showProcessingOverlay(title = 'Processing Your Request', subtitle = 'Please wait while we process your request...') {
+            const existing = document.getElementById('processingOverlay');
+            if (existing) existing.remove();
+            const overlay = document.createElement('div');
+            overlay.id = 'processingOverlay';
+            overlay.className = 'fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm';
+            overlay.setAttribute('style', 'z-index:9999');
+            overlay.innerHTML = `
+                <div class="bg-slate-800 text-white rounded-2xl border border-slate-700 shadow-2xl px-8 py-6 w-full max-w-md text-center">
+                    <div class="mx-auto mb-4 w-12 h-12 flex items-center justify-center text-blue-400">
+                        <i class="fas fa-spinner fa-spin text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-1">${title}</h3>
+                    <p class="text-slate-300 text-sm">${subtitle}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function hideProcessingOverlay() {
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay) overlay.remove();
+        }
+
+        function confirmHRApproval(id) {
+            if (!confirm('Approve this leave as HR?')) return;
+            showProcessingOverlay('Processing Leave Request', 'Please wait while we process the leave request...');
+            // submit via POST to keep overlay visible until navigation
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `../controllers/approve_leave.php?id=${id}`;
+            document.body.appendChild(form);
+            setTimeout(() => form.submit(), 300);
+        }
+
+        function promptHRRejection(id) {
+            const reason = prompt('Enter reason for HR rejection:');
+            if (reason === null) return;
+            showProcessingOverlay('Processing Leave Request', 'Please wait while we process the leave request...');
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `../controllers/reject_leave.php?id=${id}`;
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'reason';
+            input.value = reason;
+            form.appendChild(input);
+            document.body.appendChild(form);
+            // delay a moment so overlay is painted before submit
+            setTimeout(() => form.submit(), 300);
+        }
     </script>
     
-<?php include '../../../../includes/admin_footer.php'; ?> 
+<?php include '../../../../includes/admin_footer.php'; ?>

@@ -74,21 +74,11 @@ try {
         $end = new DateTime($request['end_date']);
         $days = $start->diff($end)->days + 1;
         
-        // Status badge
+        // Final Status badge (match main table styling)
         $statusBadge = '';
-        switch ($request['status']) {
-            case 'approved':
-                $statusBadge = '<span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">Approved</span>';
-                break;
-            case 'rejected':
-                $statusBadge = '<span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">Rejected</span>';
-                break;
-            case 'pending':
-                $statusBadge = '<span class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">Pending</span>';
-                break;
-            default:
-                $statusBadge = '<span class="bg-slate-500/20 text-slate-400 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">' . ucfirst($request['status']) . '</span>';
-        }
+        $final = strtolower($request['status'] ?? 'pending');
+        $finalColor = $final === 'approved' ? 'green' : ($final === 'rejected' ? 'red' : 'yellow');
+        $statusBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-' . $finalColor . '-500/20 text-' . $finalColor . '-400 border border-' . $finalColor . '-500/30" data-final-status="' . ucfirst($final) . '">' . ucfirst($final) . '</span>';
         
         // Generate HTML matching the exact original table structure
         $html .= '
@@ -128,53 +118,56 @@ try {
                     </span>
                 </div>
             </td>
+            <!-- HR Approval (match main view) -->
             <td class="py-4 px-4">
                 <div class="flex flex-col gap-1">
                     ' . (function() use ($request) {
                         $dept_status = $request['dept_head_approval'] ?? 'pending';
-                        $director_status = $request['director_approval'] ?? 'pending';
-                        
-                        // If department head rejected, director status should show as rejected
-                        if ($dept_status == 'rejected') {
-                            $director_status = 'rejected';
-                        }
-                        
-                        $director_color = $director_status == 'approved' ? 'green' : ($director_status == 'rejected' ? 'red' : 'yellow');
-                        return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-' . $director_color . '-500/20 text-' . $director_color . '-400 border border-' . $director_color . '-500/30">
-                            ' . ucfirst($director_status) . '
-                        </span>';
+                        $admin_status = $request['admin_approval'] ?? 'pending';
+                        if ($dept_status == 'rejected') { $admin_status = 'rejected'; }
+                        $admin_color = $admin_status == 'approved' ? 'green' : ($admin_status == 'rejected' ? 'red' : 'yellow');
+                        return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-' . $admin_color . '-500/20 text-' . $admin_color . '-400 border border-' . $admin_color . '-500/30" data-hr-status="' . ucfirst($admin_status) . '">' . ucfirst($admin_status) . '</span>';
                     })() . '
                 </div>
             </td>
+            <!-- Director Approval (gated by Dept Head; pending until HR approved) -->
             <td class="py-4 px-4">
-                <div class="flex items-center gap-2">
-                    ' . $statusBadge . '
-                    <button type="button" class="p-1 text-slate-400 hover:text-white transition-colors" 
-                            onclick="showStatusInfo(' . $request['id'] . ')"
-                            title="View Status Details">
-                        <i class="fas fa-info-circle text-sm"></i>
-                    </button>
+                <div class="flex flex-col gap-1">
+                    ' . (function() use ($request) {
+                        $dept_status = $request['dept_head_approval'] ?? 'pending';
+                        $admin_status = $request['admin_approval'] ?? 'pending';
+                        $director_status = $request['director_approval'] ?? 'pending';
+                        if ($dept_status == 'rejected') { $director_status = 'rejected'; }
+                        elseif ($admin_status !== 'approved') { $director_status = 'pending'; }
+                        $director_color = $director_status == 'approved' ? 'green' : ($director_status == 'rejected' ? 'red' : 'yellow');
+                        return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-' . $director_color . '-500/20 text-' . $director_color . '-400 border border-' . $director_color . '-500/30" data-director-status="' . ucfirst($director_status) . '">' . ucfirst($director_status) . '</span>';
+                    })() . '
                 </div>
             </td>
+            
             <td class="py-4 px-4">
                 <div class="flex flex-col gap-2">
-                    ' . (($request['dept_head_approval'] == 'approved' && $request['director_approval'] == 'approved') ? 
-                        '<a href="print_leave_request.php?id=' . $request['id'] . '" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-                            <i class="fas fa-print mr-1"></i> Print
-                        </a>' : 
-                        (($request['dept_head_approval'] == 'rejected' || $request['director_approval'] == 'rejected') ? 
-                            '<div class="text-center">
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">Rejected</span>
-                            </div>' : 
-                            '<div class="text-center">
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Waiting</span>
-                            </div>')) . '
-                    
-                    <button type="button" class="inline-flex items-center px-3 py-1 bg-primary hover:bg-primary/80 text-white text-xs font-medium rounded-lg transition-colors" 
-                        onclick="viewRequestDetails(' . $request['id'] . ')"
-                        title="View Details">
-                        <i class="fas fa-eye mr-1"></i>View
-                    </button>
+                    ' . (function() use ($request) {
+                        $dept_status = $request['dept_head_approval'] ?? 'pending';
+                        $director_status = $request['director_approval'] ?? 'pending';
+                        $admin_status = $request['admin_approval'] ?? 'pending';
+                        $dept_approved = $dept_status === 'approved';
+                        $director_approved = $director_status === 'approved';
+                        $both_approved = $dept_approved && $director_approved;
+                        $any_rejected = ($dept_status === 'rejected' || $director_status === 'rejected' || $admin_status === 'rejected');
+                        $hr_can_act = (($_SESSION['role'] ?? '') === 'admin') && $dept_approved && ($director_status === 'pending' || $director_status === null) && $admin_status !== 'approved';
+                        if ($both_approved) {
+                            return '<a href="print_leave_request.php?id=' . $request['id'] . '" target="_blank" class="self-start w-auto max-w-max inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors"><i class="fas fa-print"></i><span>Print</span></a>';
+                        } elseif ($any_rejected) {
+                            return '<div class="text-center"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">Rejected</span></div>';
+                        } elseif ($hr_can_act) {
+                            return '<div class="flex items-center gap-2">'
+                                . '<button type="button" onclick="openHRApprovalModal(' . $request['id'] . ')" class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-colors"><i class="fas fa-gavel"></i><span>Process Request</span></button>'
+                                . '</div>';
+                        } else {
+                            return '<div class="flex items-center gap-2"><span class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"><i class="fas fa-clock"></i><span>Waiting</span></span><button type="button" class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium transition-colors" onclick="viewRequestDetails(' . $request['id'] . ')" title="View details"><i class="fas fa-eye"></i><span>View</span></button></div>';
+                        }
+                    })() . '
                 </div>
             </td>
         </tr>';

@@ -203,11 +203,7 @@ class EmailService {
                     font-size: 28px; 
                     font-weight: 700; 
                 }
-                .header .icon { 
-                    font-size: 48px; 
-                    margin-bottom: 16px; 
-                    opacity: 0.9; 
-                }
+                /* removed emoji icon */
                 .content { 
                     padding: 32px 24px; 
                     background: #ffffff; 
@@ -283,7 +279,6 @@ class EmailService {
         <body>
             <div class='container'>
                 <div class='header'>
-                    <div class='icon'>" . $this->getStatusIcon($status) . "</div>
                     <h1>{$statusText}</h1>
                 </div>
                 <div class='content'>
@@ -297,7 +292,7 @@ class EmailService {
                     </div>
                     
                     <div class='details'>
-                        <h3>📋 Leave Request Details</h3>
+                        <h3>Leave Request Details</h3>
                         {$typeText}
                         <p><strong>Start Date:</strong> {$startDate}</p>
                         <p><strong>End Date:</strong> {$endDate}</p>
@@ -311,7 +306,7 @@ class EmailService {
                     </p>
                 </div>
                 <div class='footer'>
-                    <div class='company'>🏢 Employee Leave Management System (ELMS)</div>
+                    <div class='company'>Employee Leave Management System (ELMS)</div>
                     <div class='system'>This is an automated notification. Please do not reply to this email.</div>
                 </div>
             </div>
@@ -350,6 +345,8 @@ class EmailService {
                 return '#f59e0b';
             case 'dept_approved':
                 return '#3b82f6';
+            case 'hr_approved':
+                return '#2563eb';
             case 'rejected':
                 return '#ef4444';
             case 'pending':
@@ -369,6 +366,8 @@ class EmailService {
                 return 'Approved without Pay';
             case 'dept_approved':
                 return 'Approved by Department Head';
+            case 'hr_approved':
+                return 'Approved by HR';
             case 'rejected':
                 return 'Rejected';
             case 'pending':
@@ -387,6 +386,8 @@ class EmailService {
                 return '⚠️';
             case 'dept_approved':
                 return '📋';
+            case 'hr_approved':
+                return '🧑‍💼';
             case 'rejected':
                 return '❌';
             case 'pending':
@@ -420,15 +421,17 @@ class EmailService {
     private function getEmailSubject(string $status): string {
         switch ($status) {
             case 'approved':
-                return '🎉 Leave Request Approved - ELMS';
+                return 'Leave Request Approved - ELMS';
             case 'dept_approved':
-                return '📋 Leave Request Approved by Department Head - ELMS';
+                return 'Leave Request Approved by Department Head - ELMS';
+            case 'hr_approved':
+                return 'Leave Request Approved by HR - ELMS';
             case 'rejected':
-                return '❌ Leave Request - ELMS';
+                return 'Leave Request - ELMS';
             case 'pending':
-                return '⏳ Leave Request Submitted - ELMS';
+                return 'Leave Request Submitted - ELMS';
             default:
-                return '📄 Leave Request - ELMS';
+                return 'Leave Request - ELMS';
         }
     }
     
@@ -456,7 +459,13 @@ class EmailService {
                 return "
                 <div class='next-steps'>
                     <h4>📋 Next Steps</h4>
-                    <p>Your leave request has been approved by your Department Head and is now being reviewed by the Director. You will receive another notification once the final decision is made.</p>
+                    <p>Your leave request has been approved by your Department Head and is now being reviewed by HR. You will receive another notification after HR has reviewed your request.</p>
+                </div>";
+            case 'hr_approved':
+                return "
+                <div class='next-steps'>
+                    <h4>🧑‍💼 Next Steps</h4>
+                    <p>Your leave request has been approved by HR and will now move to the Director for final approval. You will receive another notification once the Director makes a decision.</p>
                 </div>";
             case 'rejected':
                 return "
@@ -478,7 +487,9 @@ class EmailService {
             case 'approved_without_pay':
                 return "NEXT STEPS: Your leave request has been approved without pay. You may proceed with your planned leave, but note that you will not receive salary for the approved days. Make sure to inform your team and complete any necessary handover tasks.";
             case 'dept_approved':
-                return "NEXT STEPS: Your leave request has been approved by your Department Head and is now being reviewed by the Director. You will receive another notification once the final decision is made.";
+                return "NEXT STEPS: Your leave request has been approved by your Department Head and is now being reviewed by HR. You will receive another notification after HR review.";
+            case 'hr_approved':
+                return "NEXT STEPS: Your leave request has been approved by HR and will now move to the Director for final approval. You will receive another notification after the Director's decision.";
             case 'rejected':
                 return "NEXT STEPS: If you have questions about this decision or would like to discuss alternatives, please contact your supervisor or HR department.";
             default:

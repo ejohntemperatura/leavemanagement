@@ -27,6 +27,16 @@ try {
         throw new Exception('Leave request not found');
     }
     
+    // Ensure Department Head approved first
+    if (($request['dept_head_approval'] ?? 'pending') !== 'approved') {
+        throw new Exception('Department Head must act first before Director can make a decision.');
+    }
+
+    // Ensure HR/Admin has approved before Director decision
+    if (($request['admin_approval'] ?? 'pending') !== 'approved') {
+        throw new Exception('HR must review and approve before Director can make a decision.');
+    }
+
     // Get rejection reason
     $reason = $_POST['reason'] ?? 'No reason provided';
     

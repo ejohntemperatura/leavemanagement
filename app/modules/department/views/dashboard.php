@@ -312,9 +312,9 @@ include '../../../../includes/department_header.php';
 								<h4 class="text-lg font-semibold text-white mb-2 flex items-center">
 									<i class="fas fa-clock text-blue-400 mr-2"></i>Current Status
 								</h4>
-								<p class="text-slate-300">This leave request is currently <strong class="text-white">pending</strong> and waiting for your decision.</p>
+								<p class="text-slate-300">This leave request is <strong class="text-white">pending your decision as Department Head</strong>. After your action, it will move to <strong class="text-white">Admin</strong> review, then to the <strong class="text-white">Director</strong> for final decision.</p>
 							</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 								<div class="bg-slate-700/50 rounded-xl p-4">
 									<h4 class="text-primary font-semibold mb-3 flex items-center">
 										<i class="fas fa-user-tie mr-2"></i>Department Head (You)
@@ -326,12 +326,21 @@ include '../../../../includes/department_header.php';
 								</div>
 								<div class="bg-slate-700/50 rounded-xl p-4">
 									<h4 class="text-slate-400 font-semibold mb-3 flex items-center">
-										<i class="fas fa-user-tie mr-2"></i>Director
+										<i class="fas fa-user-shield mr-2"></i>Admin
 									</h4>
 									<p class="text-slate-300 mb-2"><strong class="text-white">Status:</strong> 
 										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30 ml-2">Waiting</span>
 									</p>
-									<p class="text-slate-400 text-sm">Will review after your decision</p>
+									<p class="text-slate-400 text-sm">Will review after Department Head</p>
+								</div>
+								<div class="bg-slate-700/50 rounded-xl p-4">
+									<h4 class="text-slate-400 font-semibold mb-3 flex items-center">
+										<i class="fas fa-crown mr-2"></i>Director
+									</h4>
+									<p class="text-slate-300 mb-2"><strong class="text-white">Status:</strong> 
+										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30 ml-2">Waiting</span>
+									</p>
+									<p class="text-slate-400 text-sm">Final decision after Admin</p>
 								</div>
 							</div>
 							<div class="border-t border-slate-700 pt-6">
@@ -342,7 +351,7 @@ include '../../../../includes/department_header.php';
 									<p class="text-slate-300 mb-2"><strong class="text-white">Result:</strong> 
 										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30 ml-2">Pending</span>
 									</p>
-									<p class="text-slate-400 text-sm">Depends on all approval levels</p>
+									<p class="text-slate-400 text-sm">Will be determined after Admin and Director approvals</p>
 								</div>
 							</div>
 							<div class="flex justify-end mt-6">
