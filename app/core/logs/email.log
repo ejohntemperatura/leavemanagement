@@ -356,3 +356,6 @@
 [2025-11-25 22:53:31] [custom_notification] [OK] to=4dmin890@gmail.com subject="Leave Request Approved by Department Head - HR Review Needed - ELMS"
 [2025-11-25 22:53:42] [leave_status] [OK] to=erictorion94@gmail.com subject="Leave Request Approved by HR - ELMS"
 [2025-11-25 22:53:46] [custom_notification] [OK] to=directorhead999@gmail.com subject="Leave Request Approved by HR - Action Required - ELMS"
+[2025-11-25 23:01:38] [leave_status] [OK] to=erictorion94@gmail.com subject="Leave Request Approved by HR - ELMS"
+[2025-11-25 23:01:44] [custom_notification] [OK] to=directorhead999@gmail.com subject="Leave Request Approved by HR - Action Required - ELMS"
+[2025-11-25 23:02:10] [leave_status] [OK] to=erictorion94@gmail.com subject="Leave Request - ELMS"

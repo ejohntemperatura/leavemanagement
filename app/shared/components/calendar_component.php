@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ?>
             {
                 id: '<?php echo $request['id'] . '_' . $index; ?>',
-                title: '<?php echo addslashes($leaveDisplayName); ?> (<?php echo $request['actual_days_approved']; ?> day<?php echo $request['actual_days_approved'] != 1 ? 's' : ''; ?>)',
+                title: '<?php echo addslashes($request['employee_name']); ?> - <?php echo addslashes($leaveDisplayName); ?> (<?php echo $request['actual_days_approved']; ?> day<?php echo $request['actual_days_approved'] != 1 ? 's' : ''; ?>)',
                 start: '<?php echo $group['start']; ?>',
                 end: '<?php echo $groupEnd->format('Y-m-d'); ?>',
                 allDay: true,
