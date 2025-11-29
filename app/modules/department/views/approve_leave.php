@@ -55,7 +55,7 @@ try {
         $balance_field = $leave_type . '_leave_balance';
         
         // Don't deduct leave credits yet - wait for final approval from director
-        $_SESSION['success'] = 'Leave request approved by Department Head! Now waiting for Director approval.';
+        $_SESSION['success'] = 'Leave request approved by Department Head! Now waiting for HR approval.';
         
         // Send email notification for department head approval
         try {
